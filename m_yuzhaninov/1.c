@@ -25,9 +25,11 @@ int main(int argc, char* argv[])
     struct rlimit rl; 
     long new;
     char path[1000];
-    char **env = environ;
+    char **env = NULL;
     char *arg = NULL;
     char *eq = NULL;
+    char *name = NULL;
+    char *value = NULL;
 
     struct option long_options[] = 
     {
@@ -93,6 +95,7 @@ int main(int argc, char* argv[])
                 break;
 
             case 'v':
+                env = environ;
                 while (*env)
                 {
                     printf("%s\n", *env);
@@ -101,11 +104,11 @@ int main(int argc, char* argv[])
                 break;
             
             case 'V':
-                *arg = optarg;
-                *eq =strchr(arg, '=');
+                arg = optarg;
+                eq = strchr(arg, '=');
                 *eq = '\0';
-                const char *name = arg;
-                const char *value = eq + 1;
+                name = arg;
+                value = eq + 1;
                 setenv(name, value, 1);
                 break;
 
