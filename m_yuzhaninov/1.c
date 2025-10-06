@@ -24,6 +24,10 @@ int main(int argc, char* argv[])
     pid_t pid;
     struct rlimit rl; 
     long new;
+    char path[1000];
+    char **env = environ;
+    char *arg = NULL;
+    char *eq = NULL;
 
     struct option long_options[] = 
     {
@@ -59,10 +63,7 @@ int main(int argc, char* argv[])
                 print_limit("Ограничение на размер файлов", RLIMIT_FSIZE);
                 print_limit("Ограничение на размер сегмента данных", RLIMIT_DATA);
                 print_limit("Ограничение на размер стека", RLIMIT_STACK);
-                print_limit("Ограничение физической памяти", RLIMIT_RSS);
-                print_limit("Ограничение на количество процессов", RLIMIT_NPROC);
                 print_limit("Ограничение на количество открытых файлов", RLIMIT_NOFILE);
-                print_limit("Ограничение на объем заблокированной памяти", RLIMIT_MEMLOCK);
                 print_limit("Ограничение на размер адресного пространства", RLIMIT_AS);
                 print_limit("Ограничение на размер core-файла", RLIMIT_CORE);
                 break;
@@ -87,14 +88,11 @@ int main(int argc, char* argv[])
                 break;
             
             case 'd':
-                char path[1000];
                 getcwd(path, sizeof(path));
                 printf("Текущая директория: %s\n", path);
                 break;
 
             case 'v':
-                char **env = environ;
-
                 while (*env)
                 {
                     printf("%s\n", *env);
@@ -103,8 +101,8 @@ int main(int argc, char* argv[])
                 break;
             
             case 'V':
-                char *arg = optarg;
-                char *eq =strchr(arg, '=');
+                arg = optarg;
+                eq =strchr(arg, '=');
                 *eq = '\0';
                 const char *name = arg;
                 const char *value = eq + 1;
