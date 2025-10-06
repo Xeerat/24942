@@ -101,8 +101,8 @@ int main(int argc, char* argv[])
                 break;
             
             case 'V':
-                arg = optarg;
-                eq =strchr(arg, '=');
+                *arg = optarg;
+                *eq =strchr(arg, '=');
                 *eq = '\0';
                 const char *name = arg;
                 const char *value = eq + 1;
