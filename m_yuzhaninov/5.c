@@ -78,11 +78,11 @@ int main()
         // Убираем символ переноса строки
         if (line[lengths[n - 1] - 1] == '\n')
         {
-            line[lengths[n - 1] - 1] == '\0';
+            line[lengths[n - 1] - 1] = '\0';
         }
         else 
         {
-            line[lengths[n - 1]] == '\0';
+            line[lengths[n - 1]] = '\0';
         }
 
         printf("Строка %d: %s\n", n, line);
