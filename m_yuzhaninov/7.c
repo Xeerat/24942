@@ -5,6 +5,9 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <sys/select.h>
+#include <sys/mman.h>   
+#include <sys/stat.h> 
+#include <string.h>
 
 int main()
 {
@@ -12,11 +15,6 @@ int main()
     int fd;
     // Текст содержащий начало каждой строки
     long text[1000];  
-    // Переменная для хранения позиции
-    long pos = 0; 
-    // Переменная для записи длинны строки
-    int len = 0;
-    char symbol;
     // Массив содержащий длины строк
     int lengths[1000];
     // Количество строк
@@ -25,30 +23,42 @@ int main()
     // Открывает файл для чтения
     fd = open("data.txt", O_RDONLY);
 
-    // Первая строка начинается с нулевого отступа
-    text[0] = 0;
+    // Структура для хранения информации о файле
+    struct stat st;
+    // Добавляем информацию о файле
+    fstat(fd, &st); 
+    // Получаем размер файла в байтах
+    long long filesize = st.st_size;
 
-    // Читаем по одному байту из файла, чтобы найти символ переноса строки
-    while (read(fd, &symbol, 1) > 0)
-    {
-        pos++;
-        len++;
-        if (symbol == '\n')
+    // Отображаем файл в память
+    // Первый аргумент это адрес в памяти, если NULL значит определит сам
+    // Второй аргумент это размер который нужно отобразить
+    // Третий тип взаимодействия с файлом, в данном случае только для чтения
+    // Четвертый говорит о том, что изменения в памяти не меняют файл
+    // Пятый это дескриптор файла
+    // Шестой смещение с начала файла
+    char *data = mmap(NULL, filesize, PROT_READ, MAP_PRIVATE, fd, 0);
+
+    // Нулевой отступ
+    text[0] = 0;
+    // Переменная для обозначения начала строки
+    long long start = 0;
+
+    // Заполнение массивов
+    for (long long i = 0; i < filesize; i++)
+     {
+        if (data[i] == '\n') 
         {
-            // Записываем длинну текущей строки
-            lengths[count] = len;
+            lengths[count] = i - start + 1;
             count++;
-            // Записываем начало следующей строки
-            text[count] = pos;
-            len = 0;
+            text[count] = i + 1;
+            start = i + 1;
         }
     }
-
-    // Если последняя строка не заканчивается символом переноса строки
-    if (len > 0)
+    // Обработка последней строки 
+    if (start < filesize) 
     {
-        // Записываем длинну
-        lengths[count] = len;
+        lengths[count] = filesize - start;
         count++;
     }
 
@@ -82,19 +92,9 @@ int main()
         // Если вернулся 0, то пользователь ничего не ввел
         if (retval == 0)
         {
-            printf("\nВремя вышло! Содержимое файла:\n\n");
-            // Переменная для записи символов
-            char buffer[1000];
-            // Смещаем указатель на начало
-            lseek(fd, 0, SEEK_SET);
-            int r;
-            // Пока мы можем что то прочитать - читаем
-            while ((r = read(fd, buffer, sizeof(buffer))) > 0)
-            {
-                // Выводим символы в консоль
-                write(1, buffer, r);
-            }
-
+            printf("\nВремя вышло. Содержимое файла:\n\n");
+            // Выводим весь файл
+            write(1, data, filesize);
             break;
         }
         // Иначе 
@@ -114,28 +114,29 @@ int main()
                 continue;
             }
 
-            // Смещаем курсор до начала нужной строки
-            // SEEK_SET говорит что отсчет идет от начала файла
-            lseek(fd, text[n - 1], SEEK_SET);
+            // Определяем длинну строки и выделяем память
+            int len = lengths[n - 1];
+            char *line = malloc(len + 1);
 
-            // Выделяем память под строку и читаем ее
-            char *line = malloc(lengths[n - 1] + 1);
-            read(fd, line, lengths[n - 1]);
-            // Убираем символ переноса строки
-            if (line[lengths[n - 1] - 1] == '\n')
+            // Копируем нужную строку из памяти
+            memcpy(line, data + text[n - 1], len);
+            
+            // Корректировка
+            if (len > 0 && line[len - 1] == '\n') 
             {
-                line[lengths[n - 1] - 1] = '\0';
+                line[len - 1] = '\0';
             }
-            else 
+            else
             {
-                line[lengths[n - 1]] = '\0';
+                line[len] = '\0';
             }
 
             printf("Строка %d: %s\n", n, line);
             free(line);
         }
     }
-
+    // Освобождаем память
+    munmap(data, filesize);
     close(fd);
     return 0;
 }
